@@ -39,6 +39,7 @@ Series * NewSeries(int32_t retentionSecs, short maxSamplesPerChunk);
 void FreeSeries(void *value);
 size_t SeriesMemUsage(const void *value);
 int SeriesAddSample(Series *series, api_timestamp_t timestamp, double value);
+int SeriesUpdateSample(Series *series, api_timestamp_t timestamp, double value);
 
 SeriesItertor SeriesQuery(Series *series, api_timestamp_t minTimestamp, api_timestamp_t maxTimestamp);
 int SeriesItertorGetNext(SeriesItertor *iterator, Sample *currentSample);

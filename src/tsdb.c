@@ -61,7 +61,11 @@ size_t SeriesMemUsage(const void *value) {
 
 int SeriesAddSample(Series *series, api_timestamp_t timestamp, double value) {
     if (timestamp < series->lastTimestamp) {
-        return TSDB_ERR_TIMESTAMP_TOO_OLD;
+        if (SeriesUpdateSample(series, timestamp, value) == 1) {
+            return TSDB_OK;
+        } else {
+            return TSDB_ERR_TIMESTAMP_TOO_OLD;
+        }
     } else if (timestamp == series->lastTimestamp) {
         // this is a hack, we want to override the last sample, so lets ignore it first
         series->lastChunk->num_samples--;
@@ -85,6 +89,21 @@ int SeriesAddSample(Series *series, api_timestamp_t timestamp, double value) {
     series->lastTimestamp = timestamp;
 
     return TSDB_OK;
+}
+
+int SeriesUpdateSample(Series *series, api_timestamp_t timestamp, double value) {
+    Sample tmpSample;
+    SeriesItertor iterator = SeriesQuery(series, timestamp, timestamp);
+    int iteratorRetValue;
+    do {
+        iteratorRetValue = SeriesItertorGetNext(&iterator, &tmpSample);
+        if (iteratorRetValue == 1) {
+            Sample *sampleToUpdate = ChunkGetSample(iterator.chunkIterator.chunk, iterator.chunkIterator.currentIndex-1);
+            sampleToUpdate->data = value;
+            return 1;
+        }
+    } while (iteratorRetValue != 0 );
+    return 0;
 }
 
 SeriesItertor SeriesQuery(Series *series, api_timestamp_t minTimestamp, api_timestamp_t maxTimestamp) {

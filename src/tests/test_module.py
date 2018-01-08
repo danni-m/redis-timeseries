@@ -22,6 +22,12 @@ class MyTestCase(ModuleTestCase('redis-tsdb-module.so')):
             actual_result = r.execute_command('TS.range', 'tester', start_ts, start_ts + samples_count)
             assert expected_result == actual_result
 
+            new_value = 4
+            assert r.execute_command('TS.ADD', 'tester', start_ts, new_value)
+            ts_value = r.execute_command('TS.range', 'tester', start_ts, start_ts)
+            assert ts_value == [[start_ts, str(new_value)]]
+
+
     def test_rdb(self):
         start_ts = 1511885909L
         samples_count = 500
