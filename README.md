@@ -22,9 +22,29 @@ Each sample is the size of 128bit (64bit for the timestamp and 64bit for the val
 * Compactions/Roll-ups - automatically updated aggregated timeseries
 
 ## Build
-1. `cd src`
-2. `make`
-3. on your red-server run: `loadmodule redis-tsdb-module.so`
+
+- Install [GNU Scientific Library](http://www.gnu.org/software/gsl/):
+
+  - Ubuntu: 
+  ```sh
+  sudo apt-get install libgsl0ldbl libgsl0-dev
+  ```
+  
+  - CentOS/RHEL/Fedora: 
+  ```sh
+  sudo yum install gsl gsl-devel
+  ```
+
+  - MacOS: 
+  ```sh
+  brew install gsl
+  ```
+
+- Build the redis-timeseries module:
+
+  1. `cd src`
+  2. `make`
+  3. on your red-server run: `loadmodule redis-tsdb-module.so`
 
 ### Tests
 Tests are written in python using the [rmtest](https://github.com/RedisLabs/rmtest) library.
