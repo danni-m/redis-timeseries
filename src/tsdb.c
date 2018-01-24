@@ -92,7 +92,6 @@ int SeriesAddSample(Series *series, api_timestamp_t timestamp, double value) {
 }
 
 
-// Danni: Perhaps add this info to series object ?
 int SeriesSampleCount(Series *series) {
     SeriesItertor iter = SeriesQuery(series, 0, series->lastTimestamp);
     Sample sample;
@@ -104,86 +103,30 @@ int SeriesSampleCount(Series *series) {
     return count;
 }
 
-Vector *SeriesGetSamples(Series *series) {
-    Vector *v = NewVector(double, 0);
-    SeriesItertor iter = SeriesQuery(series, 0, series->lastTimestamp);
-    Sample sample;
-    while (SeriesItertorGetNext(&iter, &sample) != 0) {
-        Vector_Push(v, sample.data);
-    }
-    return v;
-}
 
-double PearsonCoeff(Series *series_1, Series *series_2) {
+double PearsonCorrelationCoefficient(Series *series_1, Series *series_2, int sampleCount) {
 
-// Danni: what might cause a memory fault?
-/*
-    Vector *x = SeriesGetSamples(series_1);
-    Vector *y = SeriesGetSamples(series_2);
-*/
+    double *data_1, *data_2;
+    data_1 = RedisModule_Alloc(sampleCount*sizeof(double));
+    data_2 = RedisModule_Alloc(sampleCount*sizeof(double));
 
     SeriesItertor iter;
     Sample sample;
 
-    Vector *x = NewVector(double, 0);
     iter = SeriesQuery(series_1, 0, series_1->lastTimestamp);
     while (SeriesItertorGetNext(&iter, &sample) != 0) {
-        Vector_Push(x, sample.data);
+        data_1[iter.currentSampleIndex-1] = sample.data;
     }
 
-    Vector *y = NewVector(double, 0);
     iter = SeriesQuery(series_2, 0, series_2->lastTimestamp);
     while (SeriesItertorGetNext(&iter, &sample) != 0) {
-        Vector_Push(y, sample.data);
+        data_2[iter.currentSampleIndex-1] = sample.data;
     }
 
-// Maital: This should yeild pcc == 1
-/*
-    Vector *x = NewVector(double, 5);
-    Vector_Push(x, (double) 5.0);
-    Vector_Push(x, (double) 5.0);
-    Vector_Push(x, (double) 5.0);
-    Vector_Push(x, (double) 5.0);
-    Vector_Push(x, (double) 5.0);
+    double pcc = gsl_stats_correlation(data_1, 1, data_2, 1, sampleCount);
 
-
-    Vector *y = NewVector(double, 5);
-    Vector_Push(y, (double) 5.0);
-    Vector_Push(y, (double) 5.0);
-    Vector_Push(y, (double) 5.0);
-    Vector_Push(y, (double) 5.0);
-    Vector_Push(y, (double) 5.0);
-*/
-
-// Using a regular vector - can't #include <vector>
-/*  vector<double> x, y;
-    size_t n = 5;
-    x.push_back(1.0); y.push_back(1.0);
-    x.push_back(3.1); y.push_back(3.2);
-    x.push_back(2.0); y.push_back(1.9);
-    x.push_back(5.0); y.push_back(4.9);
-    x.push_back(2.0); y.push_back(2.1);
-*/
-
-
-    int m;
-    double rc_1 = Vector_Get(x, 0, &m);
-    gsl_vector_const_view gsl_x = gsl_vector_const_view_array( &rc_1, Vector_Size(x) );
-
-    int n;
-    double rc_2 = Vector_Get(y, 0, &n);
-    gsl_vector_const_view gsl_y = gsl_vector_const_view_array( &rc_2, Vector_Size(y) );
-
-
-    // Danni : what is the correct stride for RMUtils Vector ?
-    const size_t stride = 1;
-    double pcc = gsl_stats_correlation( (double*) gsl_x.vector.data, stride,
-                                          (double*) gsl_y.vector.data, stride,
-                                          5 );
-
-//  double pcc = gsl_stats_correlation( (double*) gsl_x.vector.data, sizeof(double),
-//                                          (double*) gsl_y.vector.data, sizeof(double),
-//                                          5 );
+    RedisModule_Free(data_1);
+    RedisModule_Free(data_2);
 
     return pcc;
 }
@@ -233,6 +176,7 @@ int SeriesItertorGetNext(SeriesItertor *iterator, Sample *currentSample) {
             break;
         } else {
             memcpy(currentSample, &internalSample, sizeof(Sample));
+            iterator->currentSampleIndex++;
             return 1;
         }
     }

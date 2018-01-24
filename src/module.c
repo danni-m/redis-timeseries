@@ -409,11 +409,13 @@ int TSDB_correlate(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
     Series *series_1 = RedisModule_ModuleTypeGetValue(key_1);
     Series *series_2 = RedisModule_ModuleTypeGetValue(key_2);
 
-    if (SeriesSampleCount(series_1) != SeriesSampleCount(series_2)) {
-        return RedisModule_ReplyWithError(ctx, "TSDB: sample count is different for the two keys");
-    }
+    int sampleCount_1 = SeriesSampleCount(series_1);
+    int sampleCount_2 = SeriesSampleCount(series_2);
 
-    double pcc = PearsonCoeff(series_1, series_2);
+    if (sampleCount_1 != sampleCount_2)
+        return RedisModule_ReplyWithError(ctx, "TSDB: sample count is different for the two keys");
+
+    double pcc = PearsonCorrelationCoefficient(series_1, series_2, sampleCount_1);
     RedisModule_ReplyWithDouble(ctx, pcc);
 
     return REDISMODULE_OK;

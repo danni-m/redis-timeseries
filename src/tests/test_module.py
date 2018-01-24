@@ -84,14 +84,13 @@ class MyTestCase(ModuleTestCase('redis-tsdb-module.so')):
             assert r.execute_command('TS.CREATE', 'key_2')
 
             start_ts = 1488823384L
-            samples_count = 500
-            self._insert_data(r, 'key_1', start_ts, samples_count, 5)
-            self._insert_data(r, 'key_2', start_ts, samples_count, 5)
+            for i in range(1,5):
+                assert r.execute_command('TS.ADD', 'key_1', start_ts + i, i)
+                assert r.execute_command('TS.ADD', 'key_2', start_ts + i, i**3)
 
             actual_result = r.execute_command('TS.CORRELATE', 'key_1', 'key_2')
-            assert actual_result == '-0.051571101601789106'   # Maital: pcc should be 1
+            assert actual_result == '0.9513698557924043'
 
-    
     def test_create_compaction_rule_without_dest_series(self):
         with self.redis() as r:
             assert r.execute_command('TS.CREATE', 'tester')
