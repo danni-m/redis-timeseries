@@ -2,7 +2,6 @@
 #include <string.h>
 #include "tsdb.h"
 #include "rmutil/alloc.h"
-#include <gsl/gsl_vector.h>
 #include <gsl/gsl_statistics.h>
 
 
