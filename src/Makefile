@@ -7,7 +7,6 @@ ifndef RMUTIL_LIBDIR
 	RMUTIL_LIBDIR=../RedisModulesSDK/rmutil
 endif
 
-# Danni: why use ifndef ?
 ifndef GSL_INCLUDE_DIR
 	GSL_INCLUDE_DIR=/usr/local/lib/
 endif
