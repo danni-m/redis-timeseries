@@ -1,6 +1,5 @@
 #include <time.h>
 #include <string.h>
-#include "../RedisModulesSDK/rmutil/vector.h"
 #include "tsdb.h"
 #include "rmutil/alloc.h"
 #include <gsl/gsl_vector.h>
