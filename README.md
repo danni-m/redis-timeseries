@@ -158,12 +158,11 @@ TS.INFO key
 8) (integer) 360
 ```
 
-### TS.correlate - calculate Pearson Correlation Coefficient between two keys
+### TS.correlate - calculate Pearson Correlation Coefficient
 ```sql
-TS.CORRELATE key_1 key_2
-"0.99750636324528885"
+TS.CREATE KEY_1 KEY_2
 ```
 * key_1 - key name for first timeseries
 * key_2 - key name for second timeseries
 
-> Both keys must have same number of samples
+> keys should have same number of samples
