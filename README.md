@@ -157,3 +157,13 @@ TS.INFO key
 7) maxSamplesPerChunk
 8) (integer) 360
 ```
+
+### TS.correlate - calculate Pearson Correlation Coefficient between two keys
+```sql
+TS.CORRELATE key_1 key_2
+"0.99750636324528885"
+```
+* key_1 - key name for first timeseries
+* key_2 - key name for second timeseries
+
+> Both keys must have same number of samples
