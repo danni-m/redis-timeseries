@@ -121,7 +121,7 @@ double PearsonCorrelationCoefficient(Series *series_1, Series *series_2, int sam
     iter = SeriesQuery(series_2, 0, series_2->lastTimestamp);
     index = 0;
     while (SeriesItertorGetNext(&iter, &sample) != 0) {
-        data_2[iter.currentSampleIndex-1] = sample.data;
+        data_2[index] = sample.data;
         index++;
     }
 
