@@ -104,8 +104,8 @@ int SeriesSampleCount(Series *series) {
 
 double PearsonCorrelationCoefficient(Series *series_1, Series *series_2, int sampleCount) {
 
-    double data_1 = RedisModule_Alloc(sampleCount*sizeof(double));
-    double data_2 = RedisModule_Alloc(sampleCount*sizeof(double));
+    double *data_1 = RedisModule_Alloc(sampleCount*sizeof(double));
+    double *data_2 = RedisModule_Alloc(sampleCount*sizeof(double));
 
     SeriesItertor iter;
     Sample sample;
