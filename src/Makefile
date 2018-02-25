@@ -7,6 +7,14 @@ ifndef RMUTIL_LIBDIR
 	RMUTIL_LIBDIR=../RedisModulesSDK/rmutil
 endif
 
+ifndef GSL_INCLUDE_DIR
+	GSL_INCLUDE_DIR=/usr/local/lib/
+endif
+
+ifndef GSL_LIBDIR
+	GSL_LIBDIR=/usr/local/include/gsl/
+endif
+
 # find the OS
 uname_S := $(shell sh -c 'uname -s 2>/dev/null || echo not')
 
@@ -18,7 +26,7 @@ else
 	SHOBJ_CFLAGS ?= -dynamic -fno-common -g -ggdb
 	SHOBJ_LDFLAGS ?= -bundle -undefined dynamic_lookup
 endif
-CFLAGS = -I$(RM_INCLUDE_DIR) -Wall -g -fPIC -lc -lm -std=gnu99  -DREDIS_MODULE_TARGET
+CFLAGS = -I$(RM_INCLUDE_DIR) -I$(GSL_INCLUDE_DIR) -Wall -g -fPIC -lc -lm -std=gnu99  -DREDIS_MODULE_TARGET
 CC=gcc
 
 all: rmutil redis-tsdb-module.so
@@ -27,7 +35,7 @@ rmutil: FORCE
 	$(MAKE) -C $(RMUTIL_LIBDIR)
 
 redis-tsdb-module.so: rmutil module.o tsdb.o compaction.o rdb.o chunk.o
-	$(LD) -o $@ module.o tsdb.o rdb.o compaction.o chunk.o $(SHOBJ_LDFLAGS) $(LIBS) -L$(RMUTIL_LIBDIR) -lrmutil -lc 
+	$(LD) -o $@ module.o tsdb.o rdb.o compaction.o chunk.o $(SHOBJ_LDFLAGS) $(LIBS) -L$(RMUTIL_LIBDIR) -L$(GSL_LIBDIR) -lgsl -lgslcblas -lrmutil -lc 
 
 clean:
 	rm -rf *.xo *.so *.o

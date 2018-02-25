@@ -384,6 +384,45 @@ int TSDB_createRule(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
     return REDISMODULE_OK;
 }
 
+/*
+TS.CORRELATE key_1 key_2
+*/
+int TSDB_correlate(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
+    RedisModule_AutoMemory(ctx);
+
+    if (argc != 3)
+        return RedisModule_WrongArity(ctx);
+
+    RedisModuleKey *key_1 = RedisModule_OpenKey(ctx, argv[1], REDISMODULE_READ|REDISMODULE_WRITE);
+    if (RedisModule_KeyType(key_1) == REDISMODULE_KEYTYPE_EMPTY) {
+        return RedisModule_ReplyWithError(ctx, "TSDB: key_1 does not exists");
+    } else if (RedisModule_ModuleTypeGetType(key_1) != SeriesType) {
+        return RedisModule_ReplyWithError(ctx, REDISMODULE_ERRORMSG_WRONGTYPE);
+    }
+
+    RedisModuleKey *key_2 = RedisModule_OpenKey(ctx, argv[2], REDISMODULE_READ|REDISMODULE_WRITE);
+    if (RedisModule_KeyType(key_2) == REDISMODULE_KEYTYPE_EMPTY) {
+        return RedisModule_ReplyWithError(ctx, "TSDB: key_2 does not exists");
+    } else if (RedisModule_ModuleTypeGetType(key_2) != SeriesType) {
+        return RedisModule_ReplyWithError(ctx, REDISMODULE_ERRORMSG_WRONGTYPE);
+    }
+
+    Series *series_1 = RedisModule_ModuleTypeGetValue(key_1);
+    Series *series_2 = RedisModule_ModuleTypeGetValue(key_2);
+
+    int sampleCount_1 = SeriesSampleCount(series_1);
+    int sampleCount_2 = SeriesSampleCount(series_2);
+
+    if (sampleCount_1 != sampleCount_2)
+        return RedisModule_ReplyWithError(ctx, "TSDB: sample count is different for the two keys");
+
+    double pcc = PearsonCorrelationCoefficient(series_1, series_2, sampleCount_1);
+    RedisModule_ReplyWithDouble(ctx, pcc);
+
+    return REDISMODULE_OK;
+
+}
+
 int RedisModule_OnLoad(RedisModuleCtx *ctx) {
   if (RedisModule_Init(ctx, "tsdb", 1, REDISMODULE_APIVER_1) ==
       REDISMODULE_ERR) {
@@ -407,6 +446,7 @@ int RedisModule_OnLoad(RedisModuleCtx *ctx) {
     RMUtil_RegisterWriteCmd(ctx, "ts.add", TSDB_add);
     RMUtil_RegisterReadCmd(ctx, "ts.range", TSDB_range);
     RMUtil_RegisterReadCmd(ctx, "ts.info", TSDB_info);
+    RMUtil_RegisterReadCmd(ctx, "ts.correlate", TSDB_correlate);
 
     return REDISMODULE_OK;
 }

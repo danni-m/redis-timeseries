@@ -78,6 +78,19 @@ class MyTestCase(ModuleTestCase('redis-tsdb-module.so')):
             info_dict = self._get_ts_info(r, 'tester')
             assert info_dict == {'chunkCount': 2L, 'lastTimestamp': start_ts + samples_count -1, 'maxSamplesPerChunk': 360L, 'retentionSecs': 0L, 'rules': [['tester_agg_max_10', 10L, 'AVG']]}
     
+    def test_correlate(self):
+        with self.redis() as r:
+            assert r.execute_command('TS.CREATE', 'key_1')
+            assert r.execute_command('TS.CREATE', 'key_2')
+
+            start_ts = 1488823384L
+            for i in range(1,5):
+                assert r.execute_command('TS.ADD', 'key_1', start_ts + i, i)
+                assert r.execute_command('TS.ADD', 'key_2', start_ts + i, i**3)
+
+            actual_result = r.execute_command('TS.CORRELATE', 'key_1', 'key_2')
+            assert actual_result == '0.9513698557924043'
+
     def test_create_compaction_rule_without_dest_series(self):
         with self.redis() as r:
             assert r.execute_command('TS.CREATE', 'tester')

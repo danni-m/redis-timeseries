@@ -2,6 +2,8 @@
 #include <string.h>
 #include "tsdb.h"
 #include "rmutil/alloc.h"
+#include <gsl/gsl_statistics.h>
+
 
 Series * NewSeries(int32_t retentionSecs, short maxSamplesPerChunk)
 {
@@ -85,6 +87,50 @@ int SeriesAddSample(Series *series, api_timestamp_t timestamp, double value) {
     series->lastTimestamp = timestamp;
 
     return TSDB_OK;
+}
+
+
+int SeriesSampleCount(Series *series) {
+    SeriesItertor iter = SeriesQuery(series, 0, series->lastTimestamp);
+    Sample sample;
+    int count = 0;
+    while (SeriesItertorGetNext(&iter, &sample) != 0) {
+        count++;
+    }
+
+    return count;
+}
+
+
+double PearsonCorrelationCoefficient(Series *series_1, Series *series_2, int sampleCount) {
+
+    double *data_1 = RedisModule_Alloc(sampleCount*sizeof(double));
+    double *data_2 = RedisModule_Alloc(sampleCount*sizeof(double));
+
+    SeriesItertor iter;
+    Sample sample;
+    int index;
+
+    iter = SeriesQuery(series_1, 0, series_1->lastTimestamp);
+    index = 0;
+    while (SeriesItertorGetNext(&iter, &sample) != 0) {
+        data_1[index] = sample.data;
+        index++;
+    }
+
+    iter = SeriesQuery(series_2, 0, series_2->lastTimestamp);
+    index = 0;
+    while (SeriesItertorGetNext(&iter, &sample) != 0) {
+        data_2[index] = sample.data;
+        index++;
+    }
+
+    double pcc = gsl_stats_correlation(data_1, 1, data_2, 1, sampleCount);
+
+    RedisModule_Free(data_1);
+    RedisModule_Free(data_2);
+
+    return pcc;
 }
 
 SeriesItertor SeriesQuery(Series *series, api_timestamp_t minTimestamp, api_timestamp_t maxTimestamp) {
