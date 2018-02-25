@@ -44,7 +44,7 @@ Each sample is the size of 128bit (64bit for the timestamp and 64bit for the val
 
   1. `cd src`
   2. `make`
-  3. on your red-server run: `loadmodule redis-tsdb-module.so`
+  3. on your redis-server run: `loadmodule redis-tsdb-module.so`
 
 ### Tests
 Tests are written in python using the [rmtest](https://github.com/RedisLabs/rmtest) library.
@@ -160,7 +160,7 @@ TS.INFO key
 
 ### TS.correlate - calculate Pearson Correlation Coefficient
 ```sql
-TS.CREATE KEY_1 KEY_2
+TS.CORRELATE KEY_1 KEY_2
 ```
 * key_1 - key name for first timeseries
 * key_2 - key name for second timeseries

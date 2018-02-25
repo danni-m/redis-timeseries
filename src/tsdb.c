@@ -104,21 +104,25 @@ int SeriesSampleCount(Series *series) {
 
 double PearsonCorrelationCoefficient(Series *series_1, Series *series_2, int sampleCount) {
 
-    double *data_1, *data_2;
-    data_1 = RedisModule_Alloc(sampleCount*sizeof(double));
-    data_2 = RedisModule_Alloc(sampleCount*sizeof(double));
+    double data_1 = RedisModule_Alloc(sampleCount*sizeof(double));
+    double data_2 = RedisModule_Alloc(sampleCount*sizeof(double));
 
     SeriesItertor iter;
     Sample sample;
+    int index;
 
     iter = SeriesQuery(series_1, 0, series_1->lastTimestamp);
+    index = 0;
     while (SeriesItertorGetNext(&iter, &sample) != 0) {
-        data_1[iter.currentSampleIndex-1] = sample.data;
+        data_1[index] = sample.data;
+        index++;
     }
 
     iter = SeriesQuery(series_2, 0, series_2->lastTimestamp);
+    index = 0;
     while (SeriesItertorGetNext(&iter, &sample) != 0) {
         data_2[iter.currentSampleIndex-1] = sample.data;
+        index++;
     }
 
     double pcc = gsl_stats_correlation(data_1, 1, data_2, 1, sampleCount);
@@ -174,7 +178,6 @@ int SeriesItertorGetNext(SeriesItertor *iterator, Sample *currentSample) {
             break;
         } else {
             memcpy(currentSample, &internalSample, sizeof(Sample));
-            iterator->currentSampleIndex++;
             return 1;
         }
     }

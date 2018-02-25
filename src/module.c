@@ -388,6 +388,7 @@ int TSDB_createRule(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
 TS.CORRELATE key_1 key_2
 */
 int TSDB_correlate(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
+    RedisModule_AutoMemory(ctx);
 
     if (argc != 3)
         return RedisModule_WrongArity(ctx);
