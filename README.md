@@ -100,7 +100,7 @@ TS.RANGE key FROM_TIMESTAMP TO_TIMESTAMP [aggregationType] [bucketSizeSeconds]
 ```
 * key - key name for timeseries
 Optional args:
-    * aggregationType - one of the following: avg, sum, min, max, count, first last
+    * aggregationType - one of the following: avg, sum, min, max, count, first, last
     * bucketSizeSeconds - time bucket for aggregation in seconds
 
 #### Complexity
@@ -142,7 +142,7 @@ This command can be used as a counter/gauge that get automatic history as a time
 
 * key - key name for timeseries
 Optional args:
-    * VALUE - one of the following: avg, sum, min, max, count, first last
+    * VALUE - one of the following: avg, sum, min, max, count, first, last
     * RESET - Should the current counter should be resetted when TIME_BUCKET is changes
     * TIME_BUCKET - time bucket for resetting the current counter in seconds
 
