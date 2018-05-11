@@ -97,6 +97,19 @@ void CountAppendValue(void *contextPtr, double value) {
     context->value++;
 }
 
+void FirstAppendValue(void *contextPtr, double value) {
+    MaxMinContext *context = (MaxMinContext *)contextPtr;
+    if (context->isResetted) {
+        context->isResetted = FALSE;
+        context->value = value;
+    }
+}
+
+void LastAppendValue(void *contextPtr, double value) {
+    MaxMinContext *context = (MaxMinContext *)contextPtr;
+    context->value = value;
+}
+
 static AggregationClass aggMax = {
     .createContext = MaxMinCreateContext,
     .appendValue = MaxAppendValue,
@@ -128,19 +141,6 @@ static AggregationClass aggCount = {
     .finalize = MaxMinFinalize,
     .resetContext = MaxMinReset
 };
-
-void FirstAppendValue(void *contextPtr, double value) {
-    MaxMinContext *context = (MaxMinContext *)contextPtr;
-    if (context->isResetted) {
-        context->isResetted = FALSE;
-        context->value = value;
-    }
-}
-
-void LastAppendValue(void *contextPtr, double value) {
-    MaxMinContext *context = (MaxMinContext *)contextPtr;
-    context->value = value;
-}
 
 static AggregationClass aggFirst = {
     .createContext = MaxMinCreateContext,
