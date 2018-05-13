@@ -195,7 +195,7 @@ class MyTestCase(ModuleTestCase('redis-tsdb-module.so')):
         with self.redis() as r:
             agg_key = self._insert_agg_data(r, 'tester', 'avg')
 
-            expected_result = [[10, '156.5'], [20, '256.5'], [30, '356.5'], [40, '465.5']]
+            expected_result = [[10, '156.5'], [20, '256.5'], [30, '356.5'], [40, '456.5']]
             actual_result = r.execute_command('TS.RANGE', agg_key, 10, 50)
             assert expected_result == actual_result
 
