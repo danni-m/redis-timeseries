@@ -21,6 +21,7 @@ typedef struct AggregationClass
     void *(*createContext)();
     void(*freeContext)(void *context);
     void(*appendValue)(void *context, double value);
+    void(*replaceValue)(void *context, double value);
     void(*resetContext)(void *context);
     double(*finalize)(void *context);
 } AggregationClass;
