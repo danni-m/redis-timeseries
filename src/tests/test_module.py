@@ -234,3 +234,68 @@ class MyTestCase(ModuleTestCase('redis-tsdb-module.so')):
             expected_result = [[10, '184'], [20, '284'], [30, '384'], [40, '484']]
             actual_result = r.execute_command('TS.RANGE', agg_key, 10, 50)
             assert expected_result == actual_result
+
+    def test_agg_min_replace(self):
+        with self.redis() as r:
+            agg_key = self._insert_agg_data(r, 'tester', 'min')
+            r.execute_command('TS.ADD', 'tester', 49, 0)
+            
+            expected_result = [[10, '123'], [20, '223'], [30, '323'], [40, '0']]
+            actual_result = r.execute_command('TS.RANGE', agg_key, 10, 50)
+            assert expected_result == actual_result
+
+    def test_agg_max_replace(self):
+        with self.redis() as r:
+            agg_key = self._insert_agg_data(r, 'tester', 'max')
+            r.execute_command('TS.ADD', 'tester', 49, 500)
+
+            expected_result = [[10, '197'], [20, '297'], [30, '397'], [40, '500']]
+            actual_result = r.execute_command('TS.RANGE', agg_key, 10, 50)
+            assert expected_result == actual_result
+
+    def test_agg_avg_replace(self):
+        with self.redis() as r:
+            agg_key = self._insert_agg_data(r, 'tester', 'avg')
+            r.execute_command('TS.ADD', 'tester', 49, 999)
+
+            expected_result = [[10, '156.5'], [20, '256.5'], [30, '356.5'], [40, '508']]
+            actual_result = r.execute_command('TS.RANGE', agg_key, 10, 50)
+            assert expected_result == actual_result
+
+    def test_agg_sum_replace(self):
+        with self.redis() as r:
+            agg_key = self._insert_agg_data(r, 'tester', 'sum')
+            r.execute_command('TS.ADD', 'tester', 49, 500)
+
+            expected_result = [[10, '1565'], [20, '2565'], [30, '3565'], [40, '4581']]
+            actual_result = r.execute_command('TS.RANGE', agg_key, 10, 50)
+            assert expected_result == actual_result
+
+    def test_agg_count_replace(self):
+        with self.redis() as r:
+            agg_key = self._insert_agg_data(r, 'tester', 'count')
+            r.execute_command('TS.ADD', 'tester', 49, 0)
+
+            expected_result = [[10, '10'], [20, '10'], [30, '10'], [40, '10']]
+            actual_result = r.execute_command('TS.RANGE', agg_key, 10, 50)
+            assert expected_result == actual_result
+
+    def test_agg_first_replace(self):
+        with self.redis() as r:
+            agg_key = self._insert_agg_data(r, 'tester', 'first')
+            r.execute_command('TS.ADD', 'tester', 50, 0)
+            r.execute_command('TS.ADD', 'tester', 50, 10)
+            r.execute_command('TS.ADD', 'tester', 51, 20)
+
+            expected_result = [[10, '131'], [20, '231'], [30, '331'], [40, '431'], [50, '10']]
+            actual_result = r.execute_command('TS.RANGE', agg_key, 10, 60)
+            assert expected_result == actual_result
+
+    def test_agg_last_replace(self):
+        with self.redis() as r:
+            agg_key = self._insert_agg_data(r, 'tester', 'last')
+            r.execute_command('TS.ADD', 'tester', 49, 0)
+
+            expected_result = [[10, '184'], [20, '284'], [30, '384'], [40, '0']]
+            actual_result = r.execute_command('TS.RANGE', agg_key, 10, 50)
+            assert expected_result == actual_result

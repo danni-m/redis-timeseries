@@ -160,7 +160,7 @@ int TSDB_range(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
     return REDISMODULE_OK;
 }
 
-void handleCompaction(RedisModuleCtx *ctx, CompactionRule *rule, api_timestamp_t timestamp, double value) {
+void handleCompaction(RedisModuleCtx *ctx, CompactionRule *rule, int doReplace, api_timestamp_t timestamp, double value) {
     RedisModuleKey *key = RedisModule_OpenKey(ctx, rule->destKey, REDISMODULE_READ|REDISMODULE_WRITE);
     if (RedisModule_KeyType(key) == REDISMODULE_KEYTYPE_EMPTY){
         // key doesn't exist anymore and we don't do anything
@@ -172,7 +172,11 @@ void handleCompaction(RedisModuleCtx *ctx, CompactionRule *rule, api_timestamp_t
     if (currentTimestamp > destSeries->lastTimestamp) {
         rule->aggClass->resetContext(rule->aggContext);
     }
-    rule->aggClass->appendValue(rule->aggContext, value);
+    if (doReplace) {
+        rule->aggClass->replaceValue(rule->aggContext, value);
+    } else {
+        rule->aggClass->appendValue(rule->aggContext, value);
+    }
     SeriesAddSample(destSeries, currentTimestamp, rule->aggClass->finalize(rule->aggContext));
 }
 
@@ -208,6 +212,7 @@ int TSDB_add(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
         series = RedisModule_ModuleTypeGetValue(key);
     }
 
+    int doReplace = timestamp == series->lastTimestamp;
     int retval = SeriesAddSample(series, timestamp, value);
     int result = 0;
     if (retval == TSDB_ERR_TIMESTAMP_TOO_OLD) {
@@ -220,7 +225,7 @@ int TSDB_add(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
         // handle compaction rules
         CompactionRule *rule = series->rules;
         while (rule != NULL) {
-            handleCompaction(ctx, rule, timestamp, value);
+            handleCompaction(ctx, rule, doReplace, timestamp, value);
             rule = rule->nextRule;
         }
         
@@ -430,7 +435,7 @@ int TSDB_incrby(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
     // handle compaction rules
     CompactionRule *rule = series->rules;
     while (rule != NULL) {
-        handleCompaction(ctx, rule, currentUpdatedTime, result);
+        handleCompaction(ctx, rule, TRUE, currentUpdatedTime, result);
         rule = rule->nextRule;
     }
 

@@ -3,27 +3,54 @@
 #include "compaction.h"
 #include "rmutil/alloc.h"
 
-typedef struct MaxMinContext {
-    double value;
-    char isResetted;
-} MaxMinContext;
-
 typedef struct AvgContext {
     double val;
     double cnt;
+    struct AvgContext *last;
 } AvgContext;
 
+typedef struct MaxMinContext {
+    double value;
+    char isResetted;
+    struct MaxMinContext *last;
+} MaxMinContext;
+
 void *AvgCreateContext() {
+    AvgContext *last = (AvgContext*)malloc(sizeof(AvgContext));
+    last->val = 0;
+    last->cnt = 0;
+    last->last = last;
+    
     AvgContext *context = (AvgContext*)malloc(sizeof(AvgContext));
-    context->cnt = 0;
-    context->val =0;
+    memcpy(context, last, sizeof(*context));
+    
     return context;
 }
 
-void AvgAddValue(void *contextPtr, double value){
+void AvgFree(void *contextPtr) {
     AvgContext *context = (AvgContext *)contextPtr;
+    free(context->last);
+    free(contextPtr);
+}
+
+void AvgAppendValue(void *contextPtr, double value){
+    AvgContext *context = (AvgContext *)contextPtr;
+    memcpy(context->last, context, sizeof(*context));
+    
     context->val += value;
     context->cnt++;
+}
+
+void AvgReplaceValue(void *contextPtr, double value){
+    AvgContext *context = (AvgContext *)contextPtr;
+    context->val = context->last->val + value;
+}
+
+void AvgReset(void *contextPtr) {
+    AvgContext *context = (AvgContext *)contextPtr;
+    context->val = 0;
+    context->cnt = 0;
+    memcpy(context->last, context, sizeof(*context));
 }
 
 double AvgFinalize(void *contextPtr) {
@@ -31,33 +58,37 @@ double AvgFinalize(void *contextPtr) {
     return context->val / context->cnt;
 }
 
-void AvgReset(void *contextPtr) {
-    AvgContext *context = (AvgContext *)contextPtr;
-    context->val = 0;
-    context->cnt = 0;
-}
-
-void rm_free(void* ptr) {
-    free(ptr);
-}
-
 static AggregationClass aggAvg = {
     .createContext = AvgCreateContext,
-    .appendValue = AvgAddValue,
-    .freeContext = rm_free,
+    .freeContext = AvgFree,
+    .appendValue = AvgAppendValue,
+    .replaceValue = AvgReplaceValue,
+    .resetContext = AvgReset,
     .finalize = AvgFinalize,
-    .resetContext = AvgReset
 };
 
 void *MaxMinCreateContext() {
+    MaxMinContext *last = (MaxMinContext *)malloc(sizeof(MaxMinContext));
+    last->value = 0;
+    last->isResetted = TRUE;
+    last->last = last;
+    
     MaxMinContext *context = (MaxMinContext *)malloc(sizeof(MaxMinContext));
-    context->value = 0;
-    context->isResetted = TRUE;
+    memcpy(context, last, sizeof(*context));
+    
     return context;
+}
+
+void MaxMinFree(void *contextPtr) {
+    MaxMinContext *context = (MaxMinContext *)contextPtr;
+    free(context->last);
+    free(contextPtr);
 }
 
 void MaxAppendValue(void *contextPtr, double value) {
     MaxMinContext *context = (MaxMinContext *)contextPtr;
+    memcpy(context->last, context, sizeof(*context));
+    
     if (context->isResetted) {
         context->isResetted = FALSE;
         context->value = value;
@@ -66,19 +97,32 @@ void MaxAppendValue(void *contextPtr, double value) {
     }
 }
 
-double MaxMinFinalize(void *contextPtr) {
+void MaxReplaceValue(void *contextPtr, double value) {
     MaxMinContext *context = (MaxMinContext *)contextPtr;
-    return context->value;
+    
+    if (context->last->isResetted || value > context->last->value) {
+        context->value = value;
+    } else {
+        context->value = context->last->value;
+    }
 }
 
 void MaxMinReset(void *contextPtr) {
     MaxMinContext *context = (MaxMinContext *)contextPtr;
     context->value = 0;
     context->isResetted = TRUE;
+    memcpy(context->last, context, sizeof(*context));
+}
+
+double MaxMinFinalize(void *contextPtr) {
+    MaxMinContext *context = (MaxMinContext *)contextPtr;
+    return context->value;
 }
 
 void MinAppendValue(void *contextPtr, double value) {
     MaxMinContext *context = (MaxMinContext *)contextPtr;
+    memcpy(context->last, context, sizeof(*context));
+    
     if (context->isResetted) {
         context->isResetted = FALSE;
         context->value = value;
@@ -87,75 +131,115 @@ void MinAppendValue(void *contextPtr, double value) {
     }
 }
 
+void MinReplaceValue(void *contextPtr, double value) {
+    MaxMinContext *context = (MaxMinContext *)contextPtr;
+    
+    if (context->last->isResetted || value < context->last->value) {
+        context->value = value;
+    } else {
+        context->value = context->last->value;
+    }
+}
+
 void SumAppendValue(void *contextPtr, double value) {
     MaxMinContext *context = (MaxMinContext *)contextPtr;
+    memcpy(context->last, context, sizeof(*context));
+    
     context->value += value;
+}
+
+void SumReplaceValue(void *contextPtr, double value) {
+    MaxMinContext *context = (MaxMinContext *)contextPtr;
+    
+    context->value = context->last->value + value;
 }
 
 void CountAppendValue(void *contextPtr, double value) {
     MaxMinContext *context = (MaxMinContext *)contextPtr;
+    memcpy(context->last, context, sizeof(*context));
+    
     context->value++;
+}
+
+void CountReplaceValue(void *contextPtr, double value) {
+    // NOP: We've already counted this timestamp.
 }
 
 void FirstAppendValue(void *contextPtr, double value) {
     MaxMinContext *context = (MaxMinContext *)contextPtr;
+    memcpy(context->last, context, sizeof(*context));
+    
     if (context->isResetted) {
         context->isResetted = FALSE;
         context->value = value;
     }
 }
 
+void FirstReplaceValue(void *contextPtr, double value) {
+    MaxMinContext *context = (MaxMinContext *)contextPtr;
+    if (context->last->isResetted) {
+        context->value = value;
+    }
+}
+
 void LastAppendValue(void *contextPtr, double value) {
     MaxMinContext *context = (MaxMinContext *)contextPtr;
+    
     context->value = value;
 }
 
 static AggregationClass aggMax = {
     .createContext = MaxMinCreateContext,
+    .freeContext = MaxMinFree,
     .appendValue = MaxAppendValue,
-    .freeContext = rm_free,
-    .finalize = MaxMinFinalize,
-    .resetContext = MaxMinReset
+    .replaceValue = MaxReplaceValue,
+    .resetContext = MaxMinReset,
+    .finalize = MaxMinFinalize
 };
 
 static AggregationClass aggMin = {
     .createContext = MaxMinCreateContext,
+    .freeContext = MaxMinFree,
     .appendValue = MinAppendValue,
-    .freeContext = rm_free,
-    .finalize = MaxMinFinalize,
-    .resetContext = MaxMinReset
+    .replaceValue = MinReplaceValue,
+    .resetContext = MaxMinReset,
+    .finalize = MaxMinFinalize
 };
 
 static AggregationClass aggSum = {
     .createContext = MaxMinCreateContext,
+    .freeContext = MaxMinFree,
     .appendValue = SumAppendValue,
-    .freeContext = rm_free,
-    .finalize = MaxMinFinalize,
-    .resetContext = MaxMinReset
+    .replaceValue = SumReplaceValue,
+    .resetContext = MaxMinReset,
+    .finalize = MaxMinFinalize
 };
 
 static AggregationClass aggCount = {
     .createContext = MaxMinCreateContext,
+    .freeContext = MaxMinFree,
     .appendValue = CountAppendValue,
-    .freeContext = rm_free,
-    .finalize = MaxMinFinalize,
-    .resetContext = MaxMinReset
+    .replaceValue = CountReplaceValue,
+    .resetContext = MaxMinReset,
+    .finalize = MaxMinFinalize
 };
 
 static AggregationClass aggFirst = {
     .createContext = MaxMinCreateContext,
+    .freeContext = MaxMinFree,
     .appendValue = FirstAppendValue,
-    .freeContext = rm_free,
-    .finalize = MaxMinFinalize,
-    .resetContext = MaxMinReset
+    .replaceValue = FirstReplaceValue,
+    .resetContext = MaxMinReset,
+    .finalize = MaxMinFinalize
 };
 
 static AggregationClass aggLast = {
     .createContext = MaxMinCreateContext,
+    .freeContext = MaxMinFree,
     .appendValue = LastAppendValue,
-    .freeContext = rm_free,
-    .finalize = MaxMinFinalize,
-    .resetContext = MaxMinReset
+    .replaceValue = LastAppendValue,
+    .resetContext = MaxMinReset,
+    .finalize = MaxMinFinalize
 };
 
 int StringAggTypeToEnum(const char *agg_type) {
